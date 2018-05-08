@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module id="com.siemens.polarion.jmx.metrics.interceptors" version="1.0.0">
+
+	<service-point id="JMXMetricsMonitorStartupInterceptorFactory" interface="org.apache.hivemind.ServiceInterceptorFactory">
+		<invoke-factory>
+			<construct class="com.siemens.polarion.jmx.metrics.interceptors.JMXMetricsMonitorStartupInterceptorFactory">
+				<service>com.polarion.platform.startup.startupService</service>
+			</construct>
+		</invoke-factory>
+	</service-point>
+	<implementation service-id="com.polarion.platform.startup.startupService">
+		<interceptor service-id="JMXMetricsMonitorStartupInterceptorFactory" />
+	</implementation>
+
+	<service-point id="LoginInterceptorFactory" interface="org.apache.hivemind.ServiceInterceptorFactory">
+		<invoke-factory>
+			<construct class="com.siemens.polarion.jmx.metrics.interceptors.LoginInterceptorFactory">
+				<service>com.polarion.platform.security.securityService</service>
+			</construct>
+		</invoke-factory>
+	</service-point>
+	<implementation service-id="com.polarion.platform.security.securityService">
+		<interceptor service-id="LoginInterceptorFactory" />
+	</implementation>
+
+	<service-point id="ProjectServiceInterceptorFactory" interface="org.apache.hivemind.ServiceInterceptorFactory">
+		<invoke-factory>
+			<construct class="com.siemens.polarion.jmx.metrics.interceptors.ProjectServiceInterceptorFactory">
+				<service>com.polarion.platform.alm.project.projectService</service>
+			</construct>
+		</invoke-factory>
+	</service-point>
+	<implementation service-id="com.polarion.platform.alm.project.projectService">
+		<interceptor service-id="ProjectServiceInterceptorFactory" />
+	</implementation>
+
+<!-- Not Complete Since Polarion doesn't build the LicenseSecurityService as a exposed Service
+
+	<service-point id="LicenseSecurityInterceptorFactory" interface="org.apache.hivemind.ServiceInterceptorFactory">
+		<invoke-factory>
+			<construct class="com.siemens.polarion.jmx.metrics.interceptors.LoginInterceptorFactory">
+				<service>com.polarion.platform.internal.LicenseSecurityManager</service>
+			</construct>
+		</invoke-factory>
+	</service-point>
+	<implementation service-id="com.polarion.platform.internal.LicenseSecurityManager">
+		<interceptor service-id="LicenseSecurityInterceptorFactory" />
+	</implementation>
+-->
+
+	<contribution configuration-id="com.polarion.alm.wiki.renderingContext">
+		<item key="jmxMetricsService" value="instance:com.siemens.polarion.jmx.metrics.service.JMXMetricsService" />
+	</contribution>
+
+	<contribution configuration-id="com.polarion.alm.richpages.velocityContext">
+		<item key="jmxMetricsService" value="instance:com.siemens.polarion.jmx.metrics.service.JMXMetricsService" />
+	</contribution>
+
+</module>
