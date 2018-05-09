@@ -25,7 +25,7 @@ import com.test.pojo.DIY;
 
 public class AwsS3Collection {
 
-	private static final String BUCKETNAME = "agco-fuse-production-lake";
+	private static final String BUCKETNAME = "agco-xxxxxxxxxxxxxx";
 	// must be lower case
 	private static final String ClIENTTREGION = "us-east-1";
 	private static final String JSONHOLDER ="json";
