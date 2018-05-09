@@ -74,6 +74,7 @@ public class AwsS3Collection {
 			System.out.println("Listing object with prefix");
 			ObjectListing objectList = s3Client
 					.listObjects(new ListObjectsRequest().withBucketName(BUCKETNAME).withPrefix("json"));
+			//only collects data for 5 Files with size greater than zero for testing
 			int count1 = 0;
 			for (S3ObjectSummary objectLis : objectList.getObjectSummaries()) {
 				if (objectLis.getSize() != 0) {
