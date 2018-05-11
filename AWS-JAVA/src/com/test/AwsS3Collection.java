@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.amazonaws.AmazonServiceException;
@@ -20,19 +21,23 @@ import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.test.pojo.DIY;
 
 public class AwsS3Collection {
 
-	private static final String BUCKETNAME = "agco-xxxxxxxxxxxxxx";
+	private static final String BUCKETNAME = "agco-fuse-production-lake";
 	// must be lower case
 	private static final String ClIENTTREGION = "us-east-1";
 	private static final String JSONHOLDER ="json";
 	private static final String CSVHOLDER = "csv";
-
+	private static final AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion(ClIENTTREGION)
+			.withCredentials(new ProfileCredentialsProvider()).build();
+	private static List<DIY> diyL = new ArrayList<DIY>();
+	
 	public static void main(String[] args) {
-		List<DIY> diyL = new ArrayList<DIY>();
 		List<String> missingParameter = new ArrayList<String>();
 		try {
 
@@ -40,8 +45,7 @@ public class AwsS3Collection {
 			// * The ProfileCredentialsProvider will return your [default]
 			// * credential profile by reading from the credentials file located at
 			// * (~/.aws/credentials) which was set up with python cls
-			AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion(ClIENTTREGION)
-					.withCredentials(new ProfileCredentialsProvider()).build();
+			
 			
 			
 			S3EventNotification event;
@@ -71,41 +75,12 @@ public class AwsS3Collection {
 //			s3Collection.close();
 
 			 //listing object with prefix case senstive
+			
 			System.out.println("Listing object with prefix");
 			ObjectListing objectList = s3Client
 					.listObjects(new ListObjectsRequest().withBucketName(BUCKETNAME).withPrefix("json"));
-			//only collects data for 5 Files with size greater than zero for testing
-			int count1 = 0;
-			for (S3ObjectSummary objectLis : objectList.getObjectSummaries()) {
-				if (objectLis.getSize() != 0) {
-					count1 += 1;
-					System.out.printf("- %s (size: %d)\n", objectLis.getKey(), objectLis.getSize());
-					S3Object s3Object = s3Client.getObject(BUCKETNAME, objectLis.getKey());
-					
-					//prevents data from being pulled by bufferedReader pulls multiple lines from file
-					//String json = IOUtils.toString(s3Object.getObjectContent());
-					
-					BufferedReader bf = new BufferedReader(new InputStreamReader(s3Object.getObjectContent()));
-					String line;
-					while((line = bf.readLine())!= null) {
-					//System.out.println(line);
-					String json =  line;
-					JSONObject jsonObj = new JSONObject(line);
-					//System.out.println(jsonObj.getJSONObject("diagnostic_code"));
-					System.out.println(jsonObj.toString());
-					event = S3EventNotification.parseJson(json);
-					DIY diy = new ObjectMapper().readValue(line, DIY.class);
-					diyL.add(diy);
-					System.out.println(event.toString());
-					}
-					
-//					event = S3EventNotification.parseJson(json);
-//					System.out.println(event);
-				}
-				if (count1 == 5) {
-					break;
-				}
-			}
+			collectBucketObjects(objectList);
+			
 			for(int x =0;x<diyL.size();x++) {
 				System.out.println(diyL.get(x));
 			}
@@ -117,7 +92,7 @@ public class AwsS3Collection {
 			System.out.println("Listing contents of s3 buckets with lov2r");
 			ListObjectsV2Request lovr = new ListObjectsV2Request().withBucketName(BUCKETNAME).withMaxKeys(2);
 			ListObjectsV2Result result;
-			int count = 5;
+//			int count = 5;
 //			do {
 //
 //				// store list inside of ListObjectsV2Result Object
@@ -155,13 +130,60 @@ public class AwsS3Collection {
 			e.printStackTrace();
 		} catch (SdkClientException ed) {
 			ed.printStackTrace();
-
-		}catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			
 		}
 		
 		
+	}
+	
+	public static List<DIY> collectBucketObjects(ObjectListing objectList){
+		int count1 = 0;
+		for (S3ObjectSummary objectLis : objectList.getObjectSummaries()) {
+			//s3 bucket java api does not actually contain a method for creation of data so we must go off naming convention
+			if(objectLis.toString().contains("2018-01-01")) {
+			if (objectLis.getSize() != 0) {
+				count1 += 1;
+				System.out.printf("- %s (size: %d)\n", objectLis.getKey(), objectLis.getSize());
+				S3Object s3Object = s3Client.getObject(BUCKETNAME, objectLis.getKey());
+				//prevents data from being pulled by bufferedReader pulls multiple lines from file
+				//String json = IOUtils.toString(s3Object.getObjectContent());
+				
+				BufferedReader bf = new BufferedReader(new InputStreamReader(s3Object.getObjectContent()));
+				String line;
+				try {
+					while((line = bf.readLine())!= null) {
+					//System.out.println(line);
+					String json =  line;
+					JSONObject jsonObj = new JSONObject(line);
+					//System.out.println(jsonObj.getJSONObject("diagnostic_code"));
+					System.out.println(jsonObj.toString());
+					//event = S3EventNotification.parseJson(json);
+					DIY diy = new ObjectMapper().readValue(line, DIY.class);
+					diyL.add(diy);
+					//System.out.println(event.toString());
+					}
+				} catch (JsonParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (JsonMappingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (JSONException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+//				event = S3EventNotification.parseJson(json);
+//				System.out.println(event);
+			}
+		}
+			if (count1 == 5) {
+				break;
+			}
+		}
+		
+		return diyL;
 	}
 }
