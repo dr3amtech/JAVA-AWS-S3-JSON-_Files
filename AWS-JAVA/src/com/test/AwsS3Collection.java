@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
+
+import javax.mail.Session;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,6 +27,8 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import com.test.Utilities.EmailUtil;
 import com.test.pojo.DIY;
 
 public class AwsS3Collection {
@@ -37,7 +42,7 @@ public class AwsS3Collection {
 			.withCredentials(new ProfileCredentialsProvider()).build();
 	private static List<DIY> diyL = new ArrayList<DIY>();
 	
-	public static void main(String[] args) {
+	public static void main(String... args) {
 		List<String> missingParameter = new ArrayList<String>();
 		try {
 
@@ -139,7 +144,7 @@ public class AwsS3Collection {
 		int count1 = 0;
 		for (S3ObjectSummary objectLis : objectList.getObjectSummaries()) {
 			//s3 bucket java api does not actually contain a method for creation of data so we must go off naming convention
-			if(objectLis.toString().contains("2018-01-01")) {
+			//if(objectLis.toString().contains("2018-01-01")) {
 			if (objectLis.getSize() != 0) {
 				count1 += 1;
 				System.out.printf("- %s (size: %d)\n", objectLis.getKey(), objectLis.getSize());
@@ -161,7 +166,16 @@ public class AwsS3Collection {
 					diyL.add(diy);
 					//System.out.println(event.toString());
 					}
-				} catch (JsonParseException e) {
+					
+				}catch(UnrecognizedPropertyException un){
+					System.out.println(un.getMessage());
+					//
+					sendEmail(un.getMessage(),"Sai.Tadepu@agcocorp.com");
+					un.printStackTrace();
+					System.exit(1);
+					
+					
+				}catch (JsonParseException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (JsonMappingException e) {
@@ -178,12 +192,27 @@ public class AwsS3Collection {
 //				event = S3EventNotification.parseJson(json);
 //				System.out.println(event);
 			}
-		}
-			if (count1 == 5) {
+	//	}
+			if (count1 ==10) {
 				break;
 			}
 		}
-		
+		System.out.println("Count: "+count1);
 		return diyL;
 	}
+	
+	
+	public static void sendEmail(String body , String UserEmail) {
+		String relayHost = "smtpapps.atlanta.agcocorp.com";
+		String email = UserEmail;
+		String subject = "Verfication needed There was a change in the following object";
+		Properties props= System.getProperties();
+		props.put("mail.smtp.host", relayHost);
+		Session session = Session.getInstance(props,null);
+		EmailUtil.sendEmail(session, email, subject, body);
+		
+		
+		
+	}
+	
 }
