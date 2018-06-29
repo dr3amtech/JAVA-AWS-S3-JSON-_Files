@@ -170,7 +170,7 @@ public class AwsS3Collection {
 				}catch(UnrecognizedPropertyException un){
 					System.out.println(un.getMessage());
 					//
-					sendEmail(un.getMessage(),"Sai.Tadepu@agcocorp.com");
+					sendEmail(un.getMessage(),"xxxxx@email.com");
 					un.printStackTrace();
 					System.exit(1);
 					
